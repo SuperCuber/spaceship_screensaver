@@ -1,0 +1,10 @@
+[package]
+name = "spaceship_simulator"
+version = "0.1.0"
+authors = ["SuperCuber <amit.gold00@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+nannou = "*"
+rayon = "*"
+antidote = "*"
