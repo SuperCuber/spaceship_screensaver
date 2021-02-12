@@ -60,7 +60,7 @@ fn event(app: &App, model: &mut Model, event: Event) {
 fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
     draw.background()
-        .color(Rgb::from_components((60u8, 60u8, 60u8)));
+        .color(Rgb::from_components((0u8, 0u8, 0u8)));
 
     for line in model.lines.iter() {
         draw.line().points(line.head, line.tail).color(line.color);

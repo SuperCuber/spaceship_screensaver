@@ -45,7 +45,7 @@ impl Line {
         let target_len = self.growth_rate * GROWTH_TO_TAIL_LEN_RATIO;
         let new_head = self.head * (1.0 + self.growth_rate * millis as f32);
         if current_len < target_len {
-            // Only move head
+            // Still growing, only move head
             Line {
                 head: new_head,
                 tail: self.tail,
