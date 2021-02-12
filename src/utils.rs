@@ -1,7 +1,6 @@
 use crate::constants::*;
 use crate::{Line, Model};
 
-use antidote::Mutex;
 use rayon::prelude::*;
 
 use nannou::color::{FromColor, RgbHue};
@@ -13,13 +12,13 @@ use nannou::rand::Rng;
 impl Distribution<Line> for Standard {
     #[inline]
     fn sample<R: Rng + ?Sized>(&self, _rng: &mut R) -> Line {
-        let distance = random_f32().powf(LONG_LINE_BIAS);
-        let head = random_unit_vector() * (random_f32() * CENTER_SIZE);
+        let distance = random_f32().powf(SHORT_LINE_BIAS);
+        let source = random_unit_vector() * (random_f32() * CENTER_SIZE);
         Line {
-            head,
-            tail_len: 0.0,
+            head: source,
+            tail: source,
             color: random_color(),
-            growth_rate: map_range(distance, 1.0, 0.0, MIN_GROW_FACTOR, MAX_GROW_FACTOR),
+            growth_rate: map_range(distance, 0.0, 1.0, MIN_GROW_FACTOR, MAX_GROW_FACTOR),
         }
     }
 }
@@ -40,14 +39,29 @@ pub(crate) fn random_color() -> Rgb {
     }
 }
 
-pub(crate) fn move_out(mut line: Line, millis: u128) -> Line {
-    line.head *= (line.growth_rate - 1.0) * (millis as f32 / 15.0) + 1.0;
-    line
-}
-
-pub(crate) fn in_window(window: Rect, line: &Line) -> bool {
-    let tail = line.head.normalize() * (line.head.magnitude() - line.tail_len);
-    window.contains(tail)
+impl Line {
+    fn move_out(self, millis: u128) -> Line {
+        let current_len = (self.head-self.tail).magnitude();
+        let target_len = self.growth_rate * GROWTH_TO_TAIL_LEN_RATIO;
+        let new_head = self.head * (1.0 + self.growth_rate * millis as f32);
+        if current_len < target_len {
+            // Only move head
+            Line {
+                head: new_head,
+                tail: self.tail,
+                color: self.color,
+                growth_rate: self.growth_rate,
+            }
+        } else {
+            // Move both, preserving length
+            Line {
+                head: new_head,
+                tail: self.tail.normalize_to(new_head.magnitude() - current_len),
+                color: self.color,
+                growth_rate: self.growth_rate,
+            }
+        }
+    }
 }
 
 pub(crate) fn zoom_in(window: Rect, model: &mut Model, millis: u128) {
@@ -56,35 +70,12 @@ pub(crate) fn zoom_in(window: Rect, model: &mut Model, millis: u128) {
         .lines
         .clone()
         .into_par_iter()
-        .map(|line| move_out(line, millis))
-        .filter(|line| in_window(window, line))
+        .map(|line| line.move_out(millis))
+        .filter(|line| window.contains(line.tail))
         .collect();
-
-    // Grow the baby lines
-    let fully_grown = Mutex::new(Vec::new());
-    model.growing = model
-        .growing
-        .clone()
-        .into_par_iter()
-        .map(|(line, target)| (move_out(line, millis), target))
-        .filter_map(|(mut line, target)| {
-            line.tail_len = line.head.magnitude() - CENTER_SIZE;
-            if line.tail_len >= target {
-                fully_grown.lock().push(line);
-                None
-            } else {
-                Some((line, target))
-            }
-        })
-        .collect();
-
-    // Adult lines go to regular lines
-    model.lines.extend(fully_grown.into_inner());
 
     // Create new lines
     for _ in 0..LINES_PER_FRAME {
-        let line: Line = random();
-        let tail = (line.growth_rate - 1.0) * GROWTH_TO_TAIL_LEN_RATIO;
-        model.growing.push((line, tail));
+        model.lines.push(random());
     }
 }

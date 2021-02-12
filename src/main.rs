@@ -15,32 +15,17 @@ fn main() {
     nannou::app(model).event(event).simple_window(view).run();
 }
 
-// enum Line2 {
-//     Growing {
-//         source: Point2,
-//         head: Point2,
-//         growth_rate: f32,
-//         color: Rgb,
-//     },
-//     Mature {
-//         head: Point2,
-//         growth_rate: f32,
-//         color: f32,
-//     }
-// }
-
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 struct Line {
     head: Point2,
-    tail_len: f32,
-    color: Rgb,
+    tail: Point2,
     growth_rate: f32,
+    color: Rgb,
 }
 
 #[derive(Default)]
 struct Model {
     lines: Vec<Line>,
-    growing: Vec<(Line, f32)>,
 }
 
 fn model(app: &App) -> Model {
@@ -77,9 +62,8 @@ fn view(app: &App, model: &Model, frame: Frame) {
     draw.background()
         .color(Rgb::from_components((60u8, 60u8, 60u8)));
 
-    for line in model.lines.iter().chain(model.growing.iter().map(|t| &t.0)) {
-        let tail_end = line.head.normalize() * (line.head.magnitude() - line.tail_len);
-        draw.line().points(line.head, tail_end).color(line.color);
+    for line in model.lines.iter() {
+        draw.line().points(line.head, line.tail).color(line.color);
     }
 
     draw.to_frame(app, &frame).unwrap();
