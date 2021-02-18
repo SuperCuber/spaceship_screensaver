@@ -56,7 +56,9 @@ fn event(app: &App, model: &mut Model, event: Event) {
         }
         _ => {}
     }
-    std::thread::sleep(std::time::Duration::from_millis(16.saturating_sub(app.duration.since_prev_update.as_millis() as u64)));
+    std::thread::sleep(std::time::Duration::from_millis(
+        16.saturating_sub(app.duration.since_prev_update.as_millis() as u64),
+    ));
 }
 
 fn view(app: &App, model: &Model, frame: Frame) {
