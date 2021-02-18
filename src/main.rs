@@ -18,9 +18,9 @@ fn main() {
 #[derive(Debug, Clone)]
 struct Line {
     head: Point2,
-    tail: Point2,
+    length: f32,
     growth_rate: f32,
-    color: Rgb,
+    color: Rgba,
 }
 
 #[derive(Default)]
@@ -33,7 +33,6 @@ fn model(app: &App) -> Model {
     window.set_cursor_visible(false);
     window.set_inner_size_pixels(SCREEN_SIZE.0, SCREEN_SIZE.1);
     window.set_fullscreen(true);
-    app.set_loop_mode(LoopMode::rate_fps(2.0));
     Model::default()
 }
 
@@ -51,10 +50,13 @@ fn event(app: &App, model: &mut Model, event: Event) {
             _ => {}
         },
         Event::Update(dt) => {
-            zoom_in(app.window_rect(), model, dt.since_last.as_millis());
+            if app.elapsed_frames() > 10 {
+                zoom_in(app.window_rect(), model, dt.since_last.as_millis());
+            }
         }
         _ => {}
     }
+    std::thread::sleep(std::time::Duration::from_millis(16.saturating_sub(app.duration.since_prev_update.as_millis() as u64)));
 }
 
 fn view(app: &App, model: &Model, frame: Frame) {
@@ -63,7 +65,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
         .color(Rgb::from_components((0u8, 0u8, 0u8)));
 
     for line in model.lines.iter() {
-        draw.line().points(line.head, line.tail).color(line.color);
+        draw.line().points(line.head, line.tail()).color(line.color);
     }
 
     draw.to_frame(app, &frame).unwrap();
